@@ -199,5 +199,5 @@ export default function Generate() {
         </DialogActions>
       </Dialog>
     </ThemeProvider>
-  )
+  );
 }
