@@ -100,11 +100,14 @@ export default function Flashcard() {
     <ThemeProvider theme={theme}>
       <Container maxWidth="md">
         <Box sx={{ my: 4 }}>
+          <br></br>
           <Typography variant="h4" component="h1" gutterBottom color="secondary">
             Saved Flashcard Sets
           </Typography>
+          <br></br>
           {loading && <CircularProgress color="secondary" />}
           {error && <Alert severity="error">{error}</Alert>}
+          <br></br>
           <Grid container spacing={2}>
             {savedFlashcardSets.map((set, index) => (
               <Grid item xs={12} sm={6} md={4} key={index}>
@@ -127,7 +130,7 @@ export default function Flashcard() {
             ))}
           </Grid>
         </Box>
-
+        <br></br>
         <Modal open={openModal} onClose={handleCloseModal}>
           <Box sx={{
             position: 'absolute',
@@ -141,6 +144,7 @@ export default function Flashcard() {
             p: 4
           }}>
             <Typography variant="h5" component="h2" gutterBottom>
+            <br></br>
               Flashcards for Set: {selectedSet}
             </Typography>
             <Grid container spacing={2}>
