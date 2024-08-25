@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Container, Grid, Card, CardContent, Typography, Box, CircularProgress, Alert, Modal, Button } from '@mui/material';
+import { Container, Grid, Card, CardContent, Typography, Box, CircularProgress, Alert, Modal, Button, IconButton } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useUser } from '@clerk/nextjs';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 const theme = createTheme({
@@ -90,6 +90,19 @@ export default function Flashcard() {
     }
   };
 
+  const handleRemoveSet = async (setName) => {
+    try {
+      const userDocRef = doc(db, 'users', user.id);
+      await updateDoc(userDocRef, {
+        flashcardSets: savedFlashcardSets.filter(set => set.name !== setName)
+      });
+
+      setSavedFlashcardSets(prevSets => prevSets.filter(set => set.name !== setName));
+    } catch (err) {
+      setError('Failed to remove flashcard set');
+    }
+  };
+
   const handleCloseModal = () => {
     setOpenModal(false);
     setSelectedFlashcards([]);
@@ -100,14 +113,11 @@ export default function Flashcard() {
     <ThemeProvider theme={theme}>
       <Container maxWidth="md">
         <Box sx={{ my: 4 }}>
-          <br></br>
           <Typography variant="h4" component="h1" gutterBottom color="secondary">
             Saved Flashcard Sets
           </Typography>
-          <br></br>
           {loading && <CircularProgress color="secondary" />}
           {error && <Alert severity="error">{error}</Alert>}
-          <br></br>
           <Grid container spacing={2}>
             {savedFlashcardSets.map((set, index) => (
               <Grid item xs={12} sm={6} md={4} key={index}>
@@ -115,14 +125,27 @@ export default function Flashcard() {
                   sx={{
                     backgroundColor: 'background.paper',
                     color: 'text.primary',
+                    position: 'relative',
                     cursor: 'pointer',
                     '&:hover': {
                       backgroundColor: '#2C2C2C', // Dark Gray for hover effect
                     },
                   }}
-                  onClick={() => handleSetClick(set.name)}
                 >
-                  <CardContent>
+                 <IconButton
+                    sx={{
+                      position: 'absolute',
+                      top: 2,
+                      right: 2,
+                      padding: '3px',
+                      fontSize: '0.8rem',
+                      color: 'text.primary',
+                    }}
+                    onClick={() => handleRemoveSet(set.name)}
+                  >
+                    X
+                  </IconButton>
+                  <CardContent onClick={() => handleSetClick(set.name)}>
                     <Typography variant="h6">{set.name}</Typography>
                   </CardContent>
                 </Card>
@@ -130,7 +153,6 @@ export default function Flashcard() {
             ))}
           </Grid>
         </Box>
-        <br></br>
         <Modal open={openModal} onClose={handleCloseModal}>
           <Box
             sx={{
@@ -148,7 +170,6 @@ export default function Flashcard() {
             }}
           >
             <Typography variant="h5" component="h2" gutterBottom>
-            <br></br>
               Flashcards for Set: {selectedSet}
             </Typography>
             <Grid container spacing={2}>
