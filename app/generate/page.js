@@ -40,10 +40,12 @@ const theme = createTheme({
   },
 })
 
-export default function Generate() {
+export default function Generate()
+{
   const { user } = useUser();
   const [text, setText] = useState('')
   const [flashcards, setFlashcards] = useState([])
+  const [flippedStates, setFlippedStates] = useState([]);
   const [setName, setSetName] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false);
@@ -74,6 +76,7 @@ export default function Generate() {
   
       const data = await response.json()
       setFlashcards(data)
+      setFlippedStates(Array(data.length).fill(false)); // Initialize flipped states to false
     } catch (error) {
       console.error('Error generating flashcards:', error)
       alert('An error occurred while generating flashcards. Please try again.')
@@ -115,8 +118,13 @@ export default function Generate() {
     }
 };
 
-
-  
+  const handleCardClick = (index) => {
+    setFlippedStates(prev => {
+      const newFlippedStates = [...prev];
+      newFlippedStates[index] = !newFlippedStates[index];
+      return newFlippedStates;
+    });
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -140,8 +148,9 @@ export default function Generate() {
             color="primary"
             onClick={handleSubmit}
             fullWidth
+            disabled={loading}
           >
-            Generate Flashcards
+            {loading ? 'Generating...' : 'Generate Flashcards'}
           </Button>
         </Box>
         
@@ -153,24 +162,34 @@ export default function Generate() {
             <Grid container spacing={2}>
               {flashcards.map((flashcard, index) => (
                 <Grid item xs={12} sm={6} md={4} key={index}>
-                  <Card sx={{ backgroundColor: 'background.paper', color: 'text.primary' }}>
+                  <Card 
+                    sx={{ backgroundColor: 'background.paper', color: 'text.primary' }}
+                    onClick={() => handleCardClick(index)}
+                  >
                     <CardContent>
-                      <Typography variant="h6" color="secondary">Front:</Typography>
-                      <Typography>{flashcard.front}</Typography>
-                      <Typography variant="h6" sx={{ mt: 2 }} color="secondary">Back:</Typography>
-                      <Typography>{flashcard.back}</Typography>
+                      {flippedStates[index] ? (
+                        <>
+                          <Typography variant="h6" color="secondary">Back:</Typography>
+                          <Typography>{flashcard.back}</Typography>
+                        </>
+                      ) : (
+                        <>
+                          <Typography variant="h6" color="secondary">Front:</Typography>
+                          <Typography>{flashcard.front}</Typography>
+                        </>
+                      )}
                     </CardContent>
                   </Card>
                 </Grid>
               ))}
             </Grid>
             {flashcards.length > 0 && (
-        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
-          <Button variant="contained" color="primary" onClick={handleOpenDialog}>
-            Save Flashcards
-          </Button>
-        </Box>
-      )}
+              <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+                <Button variant="contained" color="primary" onClick={handleOpenDialog}>
+                  Save Flashcards
+                </Button>
+              </Box>
+            )}
           </Box>
         )}
       </Container>
