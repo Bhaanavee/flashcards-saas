@@ -132,17 +132,21 @@ export default function Flashcard() {
         </Box>
         <br></br>
         <Modal open={openModal} onClose={handleCloseModal}>
-          <Box sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '80%',
-            bgcolor: 'background.paper',
-            color: 'text.primary',
-            boxShadow: 24,
-            p: 4
-          }}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '80%',
+              height: '80%', // Adjusted height to allow more content
+              overflowY: 'auto', // Enables scrolling within the modal
+              bgcolor: 'background.paper',
+              color: 'text.primary',
+              boxShadow: 24,
+              p: 4,
+            }}
+          >
             <Typography variant="h5" component="h2" gutterBottom>
             <br></br>
               Flashcards for Set: {selectedSet}
