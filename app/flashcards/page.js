@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Container, Grid, Card, CardActionArea, CardContent, Typography, Box, CircularProgress, Alert } from '@mui/material';
+import { Container, Grid, Card, CardActionArea, CardContent, Typography, Box, CircularProgress, Alert, List, ListItem, ListItemText } from '@mui/material';
 import { useUser } from '@clerk/nextjs';
 import { collection, doc, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase'; 
+import { db } from '../lib/firebase';
 
 export default function Flashcard() {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -12,19 +12,38 @@ export default function Flashcard() {
   const [flipped, setFlipped] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [flashcardSets, setFlashcardSets] = useState([]); // State to hold flashcard sets
+  const [selectedSet, setSelectedSet] = useState(''); // State to track the selected set
 
-  const searchParams = new URLSearchParams(window.location.search);
-  const search = searchParams.get('id');
-
+  // Fetch flashcard sets when the user loads
   useEffect(() => {
-    async function getFlashcard() {
-      if (!search || !user) {
+    if (!user) return;
+
+    async function fetchFlashcardSets() {
+      try {
+        const userDocRef = doc(collection(db, 'users'), user.id);
+        const setsSnapshot = await getDocs(collection(userDocRef, 'flashcardSets'));
+        const sets = [];
+        setsSnapshot.forEach(doc => sets.push(doc.id));
+        setFlashcardSets(sets);
+      } catch (err) {
+        setError('Failed to load flashcard sets');
+      }
+    }
+
+    fetchFlashcardSets();
+  }, [user]);
+
+  // Fetch flashcards for the selected set
+  useEffect(() => {
+    async function getFlashcards() {
+      if (!selectedSet || !user) {
         setLoading(false);
         return;
       }
 
       try {
-        const colRef = collection(doc(collection(db, 'users'), user.id), search);
+        const colRef = collection(doc(collection(db, 'users'), user.id), `flashcardSets/${selectedSet}/flashcards`);
         const docs = await getDocs(colRef);
         const flashcards = [];
         docs.forEach((doc) => {
@@ -37,8 +56,15 @@ export default function Flashcard() {
         setLoading(false);
       }
     }
-    getFlashcard();
-  }, [search, user]);
+
+    getFlashcards();
+  }, [selectedSet, user]);
+
+  const handleSetClick = (setName) => {
+    setSelectedSet(setName);
+    setLoading(true);
+    setError('');
+  };
 
   const handleCardClick = (id) => {
     setFlipped((prev) => ({
@@ -57,9 +83,19 @@ export default function Flashcard() {
 
   return (
     <Container maxWidth="sm">
-      {flashcards.length === 0 ? (
-        <Typography variant="h6" align="center">No flashcards found.</Typography>
+      {flashcardSets.length > 0 ? (
+        <List>
+          {flashcardSets.map((setName) => (
+            <ListItem button key={setName} onClick={() => handleSetClick(setName)}>
+              <ListItemText primary={setName} />
+            </ListItem>
+          ))}
+        </List>
       ) : (
+        <Typography variant="h6" align="center">No flashcard sets found.</Typography>
+      )}
+
+      {flashcards.length > 0 && (
         flashcards.map((flashcard) => (
           <Box key={flashcard.id} sx={{ mb: 4, perspective: '1000px' }}>
             <Card
