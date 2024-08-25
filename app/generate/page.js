@@ -144,6 +144,14 @@ export default function Generate() {
     });
   };
 
+  // Function to handle Enter key press
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault(); // Prevent form submission
+      handleSubmit();
+    }
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <Container maxWidth="md">
@@ -154,6 +162,7 @@ export default function Generate() {
           <TextField
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown} // Add key down handler
             label="Enter text"
             fullWidth
             multiline
@@ -167,6 +176,10 @@ export default function Generate() {
             onClick={handleSubmit}
             fullWidth
             disabled={loading}
+            sx={{ 
+              opacity: loading ? 0.5 : 1, // Make button semi-transparent while loading
+              pointerEvents: loading ? 'none' : 'auto' // Prevent clicks while loading
+            }}
           >
             {loading ? 'Generating...' : 'Generate Flashcards'}
           </Button>
