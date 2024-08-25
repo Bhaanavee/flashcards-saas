@@ -18,30 +18,46 @@ import {
 } from '@mui/material'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
 import { useUser } from '@clerk/nextjs';
-import { collection, doc, getDoc, writeBatch } from 'firebase/firestore';
-import { db } from '../lib/firebase';// Ensure this path is correct
+import { doc, getDoc, writeBatch } from 'firebase/firestore';
+import { db } from '../lib/firebase'; // Ensure this path is correct
 
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#FF0000', // Bright Red for primary actions like buttons
+      main: '#FF5722', // Bright Red-Orange for primary actions like buttons
     },
     secondary: {
-      main: '#C0C0C0', // Silver for secondary elements
+      main: '#E0E0E0', // Light Gray for secondary elements
     },
     background: {
-      default: '#FFFFF0', // Ivory for the background
-      paper: '#333333', // Charcoal for card backgrounds
+      default: '#000000', // Black for primary background
+      paper: '#1F1F1F', // Very Dark Gray for card backgrounds
     },
     text: {
-      primary: '#FFFFF0', // Ivory for text on dark backgrounds
-      secondary: '#333333', // Charcoal for text on light backgrounds
+      primary: '#FFFFFF', // White for primary text
+      secondary: '#B0B0B0', // Mid Gray for secondary text
+    },
+  },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#2C2C2C', // Dark Gray for card background
+          color: '#E0E0E0', // Light Gray text in cards
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none', // Optional: Removes uppercase transformation
+        },
+      },
     },
   },
 })
 
-export default function Generate()
-{
+export default function Generate() {
   const { user } = useUser();
   const [text, setText] = useState('')
   const [flashcards, setFlashcards] = useState([])
@@ -66,7 +82,7 @@ export default function Generate()
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
-        body: JSON.stringify({ text }), // Ensure the text is sent in the correct format
+        body: JSON.stringify({ text }),
         headers: { 'Content-Type': 'application/json' },
       })
   
@@ -80,43 +96,45 @@ export default function Generate()
     } catch (error) {
       console.error('Error generating flashcards:', error)
       alert('An error occurred while generating flashcards. Please try again.')
+    } finally {
+      setLoading(false);
     }
   }
 
   const saveFlashcards = async () => {
     if (!setName.trim()) {
-        alert('Please enter a name for your flashcard set.');
-        return;
+      alert('Please enter a name for your flashcard set.');
+      return;
     }
 
     try {
-        const userDocRef = doc(db, 'users', user.id);
-        const userDocSnap = await getDoc(userDocRef);
+      const userDocRef = doc(db, 'users', user.id);
+      const userDocSnap = await getDoc(userDocRef);
 
-        const batch = writeBatch(db);
+      const batch = writeBatch(db);
 
-        if (userDocSnap.exists()) {
-            const userData = userDocSnap.data();
-            const updatedSets = [...(userData.flashcardSets || []), { name: setName }];
-            batch.update(userDocRef, { flashcardSets: updatedSets });
-        } else {
-            batch.set(userDocRef, { flashcardSets: [{ name: setName }] });
-        }
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        const updatedSets = [...(userData.flashcardSets || []), { name: setName }];
+        batch.update(userDocRef, { flashcardSets: updatedSets });
+      } else {
+        batch.set(userDocRef, { flashcardSets: [{ name: setName }] });
+      }
 
-        // Reference to the flashcard set document within the user's subcollection
-        const setDocRef = doc(userDocRef, 'flashcardSets', setName);
-        batch.set(setDocRef, { flashcards });
+      // Reference to the flashcard set document within the user's subcollection
+      const setDocRef = doc(userDocRef, 'flashcardSets', setName);
+      batch.set(setDocRef, { flashcards });
 
-        await batch.commit();
+      await batch.commit();
 
-        alert('Flashcards saved successfully!');
-        handleCloseDialog();
-        setSetName('');
+      alert('Flashcards saved successfully!');
+      handleCloseDialog();
+      setSetName('');
     } catch (error) {
-        console.error('Error saving flashcards:', error);
-        alert(`An error occurred while saving flashcards: ${error.message}. Please try again.`);
+      console.error('Error saving flashcards:', error);
+      alert(`An error occurred while saving flashcards: ${error.message}. Please try again.`);
     }
-};
+  };
 
   const handleCardClick = (index) => {
     setFlippedStates(prev => {
@@ -163,18 +181,18 @@ export default function Generate()
               {flashcards.map((flashcard, index) => (
                 <Grid item xs={12} sm={6} md={4} key={index}>
                   <Card 
-                    sx={{ backgroundColor: 'background.paper', color: 'text.primary' }}
+                    sx={{ backgroundColor: 'background.paper', color: 'text.secondary' }}
                     onClick={() => handleCardClick(index)}
                   >
                     <CardContent>
                       {flippedStates[index] ? (
                         <>
-                          <Typography variant="h6" color="secondary">Back:</Typography>
+                          <Typography variant="h6" color="primary">Back:</Typography>
                           <Typography>{flashcard.back}</Typography>
                         </>
                       ) : (
                         <>
-                          <Typography variant="h6" color="secondary">Front:</Typography>
+                          <Typography variant="h6" color="primary">Front:</Typography>
                           <Typography>{flashcard.front}</Typography>
                         </>
                       )}

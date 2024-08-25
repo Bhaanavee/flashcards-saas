@@ -53,3 +53,14 @@ Vivid Purple (#9B5DE5)
 Bright Turquoise (#00F5D4)
 Coral Pink (#FF6F61)
 Midnight Blue (#0C0F0A*/
+
+
+/*Primary Background: Black (#000000) - YES
+Secondary Background: Very Dark Gray (#1F1F1F) and Dark Gray (#2C2C2C)
+Primary Text: White (#FFFFFF)
+Secondary Text: Light Gray (#E0E0E0) and Mid Gray (#B0B0B0)
+Accent Colors: Bright Red-Orange (#FF5722), Darker Red-Orange (#E64A19)
+
+
+
+ */

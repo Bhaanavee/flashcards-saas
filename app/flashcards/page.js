@@ -1,130 +1,189 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Container, Grid, Card, CardActionArea, CardContent, Typography, Box, CircularProgress, Alert, List, ListItem, ListItemText } from '@mui/material';
+import { Container, Grid, Card, CardContent, Typography, Box, CircularProgress, Alert, Modal, Button } from '@mui/material';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useUser } from '@clerk/nextjs';
-import { collection, doc, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
-export default function Flashcard() {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const [flashcards, setFlashcards] = useState([]);
-  const [flipped, setFlipped] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [flashcardSets, setFlashcardSets] = useState([]); // State to hold flashcard sets
-  const [selectedSet, setSelectedSet] = useState(''); // State to track the selected set
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#FF5722', // Bright Red-Orange for primary actions like buttons
+    },
+    secondary: {
+      main: '#E0E0E0', // Light Gray for secondary elements
+    },
+    background: {
+      default: '#000000', // Black for the primary background
+      paper: '#1F1F1F', // Very Dark Gray for card backgrounds and modal
+    },
+    text: {
+      primary: '#FFFFFF', // White for primary text
+      secondary: '#B0B0B0', // Mid Gray for secondary text
+    },
+    action: {
+      hover: '#2C2C2C', // Dark Gray for hover effects
+    },
+  },
+});
 
-  // Fetch flashcard sets when the user loads
+export default function Flashcard() {
+  const { user } = useUser();
+  const [savedFlashcardSets, setSavedFlashcardSets] = useState([]);
+  const [selectedFlashcards, setSelectedFlashcards] = useState([]);
+  const [selectedSet, setSelectedSet] = useState('');
+  const [flippedStates, setFlippedStates] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [openModal, setOpenModal] = useState(false);
+
   useEffect(() => {
     if (!user) return;
 
-    async function fetchFlashcardSets() {
+    const fetchSavedFlashcardSets = async () => {
+      setLoading(true);
+      setError('');
       try {
-        const userDocRef = doc(collection(db, 'users'), user.id);
-        const setsSnapshot = await getDocs(collection(userDocRef, 'flashcardSets'));
-        const sets = [];
-        setsSnapshot.forEach(doc => sets.push(doc.id));
-        setFlashcardSets(sets);
+        const userDocRef = doc(db, 'users', user.id);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          setSavedFlashcardSets(userData.flashcardSets || []);
+        } else {
+          setSavedFlashcardSets([]);
+        }
       } catch (err) {
-        setError('Failed to load flashcard sets');
-      }
-    }
-
-    fetchFlashcardSets();
-  }, [user]);
-
-  // Fetch flashcards for the selected set
-  useEffect(() => {
-    async function getFlashcards() {
-      if (!selectedSet || !user) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const colRef = collection(doc(collection(db, 'users'), user.id), `flashcardSets/${selectedSet}/flashcards`);
-        const docs = await getDocs(colRef);
-        const flashcards = [];
-        docs.forEach((doc) => {
-          flashcards.push({ id: doc.id, ...doc.data() });
-        });
-        setFlashcards(flashcards);
-      } catch (err) {
-        setError('Failed to load flashcards');
+        setError('Failed to load saved flashcard sets');
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    getFlashcards();
-  }, [selectedSet, user]);
+    fetchSavedFlashcardSets();
+  }, [user]);
 
-  const handleSetClick = (setName) => {
-    setSelectedSet(setName);
+  const handleSetClick = async (setName) => {
     setLoading(true);
     setError('');
+    try {
+      const userDocRef = doc(db, 'users', user.id);
+      const flashcardsRef = doc(userDocRef, 'flashcardSets', setName);
+      const flashcardsSnap = await getDoc(flashcardsRef);
+
+      if (flashcardsSnap.exists()) {
+        const data = flashcardsSnap.data();
+        setSelectedFlashcards(data.flashcards || []);
+        setSelectedSet(setName);
+        setFlippedStates(Array((data.flashcards || []).length).fill(false)); // Initialize flipped states for saved flashcards
+        setOpenModal(true);
+      } else {
+        setError('No flashcards found for this set.');
+      }
+    } catch (error) {
+      console.error('Error fetching flashcards:', error);
+      setError('An error occurred while fetching flashcards. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCardClick = (id) => {
-    setFlipped((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setSelectedFlashcards([]);
+    setSelectedSet('');
   };
-
-  if (loading) {
-    return <CircularProgress />;
-  }
-
-  if (error) {
-    return <Alert severity="error">{error}</Alert>;
-  }
 
   return (
-    <Container maxWidth="sm">
-      {flashcardSets.length > 0 ? (
-        <List>
-          {flashcardSets.map((setName) => (
-            <ListItem button key={setName} onClick={() => handleSetClick(setName)}>
-              <ListItemText primary={setName} />
-            </ListItem>
-          ))}
-        </List>
-      ) : (
-        <Typography variant="h6" align="center">No flashcard sets found.</Typography>
-      )}
-
-      {flashcards.length > 0 && (
-        flashcards.map((flashcard) => (
-          <Box key={flashcard.id} sx={{ mb: 4, perspective: '1000px' }}>
-            <Card
-              sx={{
-                transformStyle: 'preserve-3d',
-                transition: 'transform 0.6s',
-                transform: flipped[flashcard.id] ? 'rotateY(180deg)' : 'none',
-              }}
-            >
-              <CardActionArea onClick={() => handleCardClick(flashcard.id)}>
-                <CardContent
+    <ThemeProvider theme={theme}>
+      <Container maxWidth="md">
+        <Box sx={{ my: 4 }}>
+          <Typography variant="h4" component="h1" gutterBottom color="secondary">
+            Saved Flashcard Sets
+          </Typography>
+          {loading && <CircularProgress color="secondary" />}
+          {error && <Alert severity="error">{error}</Alert>}
+          <Grid container spacing={2}>
+            {savedFlashcardSets.map((set, index) => (
+              <Grid item xs={12} sm={6} md={4} key={index}>
+                <Card
                   sx={{
-                    height: '200px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backfaceVisibility: 'hidden',
-                    position: 'relative',
+                    backgroundColor: 'background.paper',
+                    color: 'text.primary',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: '#2C2C2C', // Dark Gray for hover effect
+                    },
                   }}
+                  onClick={() => handleSetClick(set.name)}
                 >
-                  <Typography variant="h5" component="div">
-                    {flipped[flashcard.id] ? flashcard.back : flashcard.front}
-                  </Typography>
-                </CardContent>
-              </CardActionArea>
-            </Card>
+                  <CardContent>
+                    <Typography variant="h6">{set.name}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+
+        <Modal open={openModal} onClose={handleCloseModal}>
+          <Box sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '80%',
+            bgcolor: 'background.paper',
+            color: 'text.primary',
+            boxShadow: 24,
+            p: 4
+          }}>
+            <Typography variant="h5" component="h2" gutterBottom>
+              Flashcards for Set: {selectedSet}
+            </Typography>
+            <Grid container spacing={2}>
+              {selectedFlashcards.map((flashcard, index) => (
+                <Grid item xs={12} sm={6} md={4} key={flashcard.id}>
+                  <Card
+                    sx={{
+                      backgroundColor: 'background.paper',
+                      color: 'text.primary',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: '#2C2C2C', // Dark Gray for hover effect
+                      },
+                    }}
+                    onClick={() => setFlippedStates(prev => {
+                      const newFlippedStates = [...prev];
+                      newFlippedStates[index] = !newFlippedStates[index];
+                      return newFlippedStates;
+                    })}
+                  >
+                    <CardContent>
+                      {flippedStates[index] ? (
+                        <>
+                          <Typography variant="h6" color="primary">Back:</Typography>
+                          <Typography>{flashcard.back}</Typography>
+                        </>
+                      ) : (
+                        <>
+                          <Typography variant="h6" color="primary">Front:</Typography>
+                          <Typography>{flashcard.front}</Typography>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+            <Button onClick={handleCloseModal} variant="contained" color="primary" sx={{ mt: 2 }}>
+              Close
+            </Button>
           </Box>
-        ))
-      )}
-    </Container>
+        </Modal>
+      </Container>
+    </ThemeProvider>
   );
 }
