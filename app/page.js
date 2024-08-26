@@ -7,6 +7,15 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import { SignedOut, SignedIn, UserButton } from '@clerk/nextjs';
 import Container from '@mui/material/Container';
+import Avatar from '@mui/material/Avatar';
+
+const teamMembers = [
+  { name: 'Bhaanavee C S', photo: '/bhaanavee.jpg', description: 'BE in Computer Science and Engineering' },
+  { name: 'Greeshma V', photo: '/greeshma.jpg', description: 'BE in Computer Science and Engineering' },
+  { name: 'Harshitha V', photo: '/harshitha.jpg', description: 'BE in Computer Science and Engineering' },
+  { name: 'Zaina Fathima I', photo: '/zaina.jpg', description: 'BE in Biotechnology' },
+];
+
 
 const HomePage = () => {
   return (
@@ -110,6 +119,35 @@ const HomePage = () => {
         </Container>
       </Box>
 
+      {/* Meet the Team Section */}
+ <Box sx={{ my: 6, py: 6, bgcolor: '#1F1F1F' }}>
+ <Container maxWidth="md">
+   <Typography variant="h4" component="h2" gutterBottom sx={{ textAlign: 'center', color: '#FFFFFF', mb: 4 }}>
+     Meet the Team
+   </Typography>
+   <Grid container spacing={5} justifyContent="center">
+     {teamMembers.map((member, index) => (
+       <Grid item xs={12} sm={6} md={3} key={index}>
+         <Box sx={{ textAlign: 'center' }}>
+           <Avatar
+             src={member.photo}
+             alt={member.name}
+             sx={{ width: 150, height: 150, margin: '0 auto', mb: 2 }}
+           />
+           <Typography variant="h6" sx={{ color: '#FF5722' }}>
+             {member.name}
+           </Typography>
+           <Typography variant="body2" sx={{ color: '#B0B0B0' }}>
+             {member.description}
+           </Typography>
+         </Box>
+       </Grid>
+     ))}
+   </Grid>
+ </Container>
+</Box>
+
+
       {/* Footer */}
       <Box sx={{ py: 4, bgcolor: '#000000', color: '#E0E0E0', textAlign: 'center' }}>
         <Typography variant="body2">
@@ -120,4 +158,5 @@ const HomePage = () => {
   );
 };
 
+ 
 export default HomePage;
